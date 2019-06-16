@@ -1,15 +1,21 @@
 import requests
 from bs4 import BeautifulSoup as bs
 import csv
+import threading
 
+# Все входные данные находятся здесь
 url = 'https://sokolushka.ru/magazin-lekarstvennyh-trav/folder/produkty-pchelovodstva/p/0'
 
 headers = {
     'accept': '*/*',
     'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'}
 
+name = input('Введите имя потока 1: ')
+name2 = input('Введите имя потока 2: ')
 
-def parse(url, headers):
+# Функция парсинга сайта СОКОЛУШКА
+def parse(url, headers, name):
+    print('Поток {} запущен'.format(name))
     urls = []
     urls.append(url)
     pars_res = []
@@ -24,7 +30,6 @@ def parse(url, headers):
                 url = f'https://sokolushka.ru/magazin-lekarstvennyh-trav/folder/produkty-pchelovodstva/p/{i}'
                 if url not in urls:
                     urls.append(url)
-            print(urls)
         except:
             pass
         for url in urls:
@@ -45,17 +50,24 @@ def parse(url, headers):
                     pass
             print(len(pars_res))
     else:
-        print('ERROR')
-    return pars_res
+        print('Поток {} - ERROR'.format(name))
+    print('Поток {} Отработан. Переходим к созданию файла'.format(name))
+    file_writer(pars_res, name)
 
-
-def file_writer(pars_res):
-    with open('sokolushka_honey.csv', 'w') as f:
+# Функция выгрузки парсинга в csv-файл
+def file_writer(pars_res, name):
+    with open('sokolushka_honey{}.csv'.format(name), 'w', newline='') as f:
         pen = csv.writer(f)
         pen.writerow(('Наименование', 'Ссылка', 'Цена'))
         for i in pars_res:
             pen.writerow((i['title'], i['href'], i['price']))
+    print('Файл sokolushka_honey{} создан'.format(name))
 
 
-results = parse(url, headers)
-file_writer(results)
+t = threading.Thread(target=parse, name='{}'.format(name), args=(url, headers, name))
+t2 = threading.Thread(target=parse, name='{}'.format(name2), args=(url, headers, name2))
+t.start()
+t2.start()
+
+# results = parse(url, headers, name)
+# file_writer(results, name)
